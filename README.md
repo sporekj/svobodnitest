@@ -1,0 +1,2 @@
+# svobodnitest
+Svobodní testovací verze
