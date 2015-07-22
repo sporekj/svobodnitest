@@ -1,0 +1,45 @@
+{extends ../@layout.latte}
+
+{block #layout}
+<div class="col-md-8">
+
+	{control flashMessage TRUE}
+	{block #contentTop}{/block}
+	{block #content}{include #page-content}{/block}
+	{block #contentBottom}
+		{element gallery gallery, config => [ variant => '@gallery.element' ], mode => 2}
+	{/block}
+
+	<hr />
+
+	{var $url = $presenter->link('//Route', array('route' => $presenter->route))}
+	{if $route->created <= DateTime::createFromFormat('Y-m-d', '2015-01-25')}
+		{var $url = str_replace('https://', 'http://', $url)}
+	{/if}
+	<iframe src="//www.facebook.com/plugins/like.php?href={=urlencode($url)}&amp;width&amp;layout=standard&amp;action=like&amp;show_faces=true&amp;share=true&amp;height=80&amp;appId=332223310281975" scrolling="no" frameborder="0" style="border:none; overflow:hidden; height:80px;" allowTransparency="true"></iframe>
+
+	<div class="row row-clen">
+		<div class="col-lg-4">
+			<a class="btn btn-block btn-default btn-clen" href="{$basePath}/registrace/stat-se-priznivcem">Stát se příznivcem</a>
+		</div>
+		<div class="col-lg-4">
+			<a class="btn btn-block btn-default btn-clen" href="{$basePath}/registrace/stat-se-clenem">Stát se členem</a>
+		</div>
+		<div class="col-lg-4">
+			<a class="btn btn-block btn-default btn-clen" href="{$basePath}/registrace/prispet-financne">Přispět finančně</a>
+		</div>
+	</div>
+
+	<hr />
+
+	<small class="muted">
+		{control itemInfo $presenter->route}
+	</small>
+</div>
+
+<div class="col-md-4 col-dark col-head">
+	{block #panel}
+	<h2>Archiv</h2>
+	{element blog history, config => [ variant => 'aktualne' ]}
+	{/block}
+</div>

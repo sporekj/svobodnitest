@@ -1,0 +1,7 @@
+.grido .twitter-typeahead {
+	width: 100%;
+}
+.grido .twitter-typeahead .tt-hint {
+	left: 3px !important;
+	top: -1px !important;
+}

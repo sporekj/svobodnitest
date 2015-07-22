@@ -1,0 +1,22 @@
+services:
+
+	translator.translator:
+		setup:
+			- '$service->addDictionary(new TranslatorModule\Dictionary(?))'(%modules.site.path%/Resources/translations)
+
+	- SiteModule\Api\ApiClientFactory
+
+factories:
+
+	site.domainControl:
+		class: SiteModule\Components\DomainControl
+		tags: [widget: domain]
+
+includes:
+	- users.svobodni.neon
+	- pages.dobrovolnik.neon
+	- pages.prispet.neon
+	- pages.pobocka.neon
+	- pages.kandidat.neon
+	- pages.organ.neon
+	- pages.fio.neon

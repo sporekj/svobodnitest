@@ -1,0 +1,26 @@
+{define #page-content}
+
+{if $presenter->id}
+	{control itemList array($control->getCurrentComment()), config => [ variant => '@guestbook.route' ]}
+	{if !$presenter->isLoggedInAsSuperadmin()}
+		{control form}
+	{/if}
+
+{else}
+	{if !$presenter->isLoggedInAsSuperadmin()}
+		{control form}
+	{/if}
+
+	{cache [$presenter->routeId, $control['pagination']->page], tags => [
+		'page' => $presenter->pageId,
+		'route' => $presenter->routeId,
+		'language' => $presenter->lang,
+	]}
+	{control pagination, config => [ variant => '@guestbook.route' ]}
+	{control itemList $control->getItemsBuilder()->orderBy('r.created', 'DESC')->getQuery()->getResult(), config => [ variant => '@guestbook.route' ]}
+	{control pagination, config => [ variant => '@guestbook.route' ]}
+	{/cache}
+
+{/if}
+
+{/define}

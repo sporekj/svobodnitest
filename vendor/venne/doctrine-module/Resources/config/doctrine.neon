@@ -1,0 +1,15 @@
+services:
+	entityManager: @doctrine.entityManagers.default
+	eventManager: @doctrine.eventManagers.default
+	schemaManager: @doctrine.schemaManagers.default
+
+	doctrine.discriminatorMapDiscoveryListener:
+		class: DoctrineModule\Mapping\DiscriminatorMapDiscoveryListener
+		tags: [listener]
+
+	doctrine.dynamicMapper:
+		class: DoctrineModule\Mapping\DynamicMapper
+		tags: [listener]
+
+factories:
+	checkConnection: @doctrine.checkConnection

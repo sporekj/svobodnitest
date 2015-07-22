@@ -1,0 +1,147 @@
+{extends ../@layout.latte}
+
+{block #title-container}
+	<div class="row row-title">
+			<div class="col-md-12"></div>
+	</div>
+{/block}
+
+{block #layout}
+
+<div class="col-md-8 col-wb hidden-xs">
+	{element blogSlider banner, config => [ variant => 'slider' ]}
+	{*<script type="text/javascript"
+			src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBlh24-Q-psVFwE0COKjhbA9vyJVPzwXtI
+&sensor=true">
+	</script>
+	<script type="text/javascript">
+		function initialize() {
+			var mapOptions = {
+				center: new google.maps.LatLng(49.817492, 15.472962),
+				zoom: 7
+			};
+			var map = new google.maps.Map(document.getElementById("map-canvas"),
+					mapOptions);
+
+			var contentString = '<div id="content">'+
+					'<div id="siteNotice">'+
+					'</div>'+
+					'<h1 id="firstHeading" class="firstHeading">Uluru</h1>'+
+					'<div id="bodyContent">'+
+					'<p><b>Uluru</b>, also referred to as <b>Ayers Rock</b>, is a large ' +
+					'sandstone rock formation in the southern part of the '+
+					'Northern Territory, central Australia. It lies 335&#160;km (208&#160;mi) '+
+					'south west of the nearest large town, Alice Springs; 450&#160;km '+
+					'(280&#160;mi) by road. Kata Tjuta and Uluru are the two major '+
+					'features of the Uluru - Kata Tjuta National Park. Uluru is '+
+					'sacred to the Pitjantjatjara and Yankunytjatjara, the '+
+					'Aboriginal people of the area. It has many springs, waterholes, '+
+					'rock caves and ancient paintings. Uluru is listed as a World '+
+					'Heritage Site.</p>'+
+					'<p>Attribution: Uluru, <a href="http://en.wikipedia.org/w/index.php?title=Uluru&oldid=297882194">'+
+					'http://en.wikipedia.org/w/index.php?title=Uluru</a> '+
+					'(last visited June 22, 2009).</p>'+
+					'</div>'+
+					'</div>';
+
+			var infowindow = new google.maps.InfoWindow({
+				content: contentString
+			});
+
+			// To add the marker to the map, use the 'map' property
+			var marker = new google.maps.Marker({
+				position: new google.maps.LatLng(49.817492, 15.472962),
+				map: map,
+				draggable:true,
+				title:"Hello World!"
+			});
+
+			google.maps.event.addListener(marker, 'click', function() {
+				infowindow.open(map,marker);
+			});
+		}
+		google.maps.event.addDomListener(window, 'load', initialize);
+	</script>
+	<div id="map-canvas" style="height: 360px; width: 100%;"></div>*}
+</div>
+
+<div class="col-md-4 col-wb">
+	<a class="btn btn-block btn-default btn-clen" href="{$basePath}/lide/europoslanec">Europoslanec</a>
+	<a class="btn btn-block btn-default btn-clen" href="{$basePath}/registrace/stat-se-priznivcem">Stát se<br class="visible-lg visible-md" /> příznivcem</a>
+	<a class="btn btn-block btn-default btn-clen" href="{$basePath}/registrace/stat-se-clenem">Stát se<br class="visible-lg visible-md" /> členem</a>
+	<a class="btn btn-block btn-default btn-clen" href="{$basePath}/registrace/prispet-financne">Přispět<br class="visible-lg visible-md" /> finančně</a>
+</div>
+
+</div>
+<div class="row">
+
+<div class="col-md-8 col-dark col-head">
+
+	<h2><a href="{$basePath}/clanky">Aktuálně</a></h2>
+	{element blog aktualne, config => [ variant => 'aktualne' ]}
+	<a href="{$basePath}/clanky" class="btn btn-primary pull-right"><span class="glyphicon glyphicon-chevron-right"></span> Další</a>
+	<hr />
+
+	<h2><a href="{$basePath}/tv">Svobodní TV</a></h2>
+	{element blogSlider tv, config => [ variant => 'tv' ]}
+	<a href="{$basePath}/tv" class="btn btn-primary pull-right"><span class="glyphicon glyphicon-chevron-right"></span> Další</a>
+
+	<div class="podporovatele-box">
+		<a href="{$basePath}/podporovatele" title="Osobnosti, které volí Stranu svobodných občanů"><em>Podporovatelé</em> <span><strong>Ivan Mládek</strong> a další osobnosti »</span></a>
+	</div>
+
+</div>
+
+{*<div class="col-md-4 col-head">*}
+	{*<div class="page-header">*}
+		{*<h2><a href="{$basePath}/media/kratka-sdeleni">Krátká sdělení</a></h2>*}
+	{*</div>*}
+	{*{element blog sdeleni, config => [ variant => 'sdeleni' ]}*}
+	{*<a href="{$basePath}/media/kratka-sdeleni" class="btn btn-primary btn-xs pull-right"><span class="glyphicon glyphicon-chevron-right"></span> Další</a>*}
+{*</div>*}
+
+<div class="col-md-4 col-head">
+
+	{*<div class="page-header">
+		<h2>Právě probíhá</h2>
+	</div>
+
+	<div class="alert alert-success">
+		<h4><a href="{$basePath}/aktivity/svobodny-vikend/skola">Svobodný víkend na téma: Škola</a></h4>
+		<p><i class="fa fa-comments fa-5x pull-left"></i> Vaše názory nás zajímají. Jsou pro nás důležité. Řekněte nám je. Přijďte nám povědět, v čem se Svobodnými souhlasíte i v čem ne, co vy sami cítíte jako problém a čím bychom se měli zabývat.
+		</p>
+
+		<p>
+			Přijďte na <a href="https://www.facebook.com/svobodni"><i class="fa fa-facebook"></i> facebook.com/svobodni</a>, druhý Svobodný víkend začíná!
+		</p>
+	</div>*}
+
+	{*<div class="control-search">*}
+		{*{control search}*}
+	{*</div>*}
+
+	<div class="page-header">
+		<h2><a href="{$basePath}/udalosti">Události</a></h2>
+	</div>
+	{element events udalosti, config => [ variant => '@events.route' ]}
+	<a href="{$basePath}/udalosti" class="btn btn-primary btn-xs pull-right"><span class="glyphicon glyphicon-chevron-right"></span> Další</a>
+
+	<div class="page-header">
+		<h2><a href="{$basePath}/clanky/stanoviska-strany">Stanoviska strany</a></h2>
+	</div>
+	{element blog stanoviska, config => [ variant => 'stanoviska' ]}
+	<a href="{$basePath}/clanky/stanoviska-strany" class="btn btn-primary btn-xs pull-right"><span class="glyphicon glyphicon-chevron-right"></span> Další</a>
+
+	<div class="page-header">
+		<h2><a href="{$basePath}/transparentni-ucet">Transparentní účet</a></h2>
+	</div>
+	{element fio fio}
+	<a href="{$basePath}/transparentni-ucet" class="btn btn-primary btn-xs pull-right"><span class="glyphicon glyphicon-chevron-right"></span> Další</a>
+
+	<div class="page-header">
+		<h2><a href="{$basePath}/aplikace">Aplikace</a></h2>
+	</div>
+	{element blog aplikace, config => [ variant => 'aplikace' ]}
+	<a href="{$basePath}/aplikace" class="btn btn-primary btn-xs pull-right"><span class="glyphicon glyphicon-chevron-right"></span> Další</a>
+
+</div>

@@ -1,0 +1,20 @@
+{block #page-content}
+
+{cache [$presenter->routeId, $presenter->lang], tags => [
+	'page-' . $presenter->pageId,
+	'route-' . $presenter->routeId,
+	'language-' . $presenter->lang,
+]}
+{control item $presenter->route, config => [ variant => '@text.route' ]}
+{/cache}
+
+{control form}
+
+<script>
+	$(function(){
+		$('#frmform-money-pair .col-lg-10').html('<div class="btn-group" data-toggle="buttons">' + $('#frmform-money-pair .col-lg-10').html() + '</div>');
+		$('#frmform-money-pair .col-lg-10 label').addClass('btn btn-default');
+		$('#frmform-money-pair .col-lg-10 label').css('margin-right', '10px');
+		$('#frmform-money-pair .col-lg-10 label input[checked=checked]').parent().addClass('active');
+	});
+</script>

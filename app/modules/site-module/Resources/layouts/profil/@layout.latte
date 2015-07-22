@@ -1,0 +1,29 @@
+{extends ../@layout.latte}
+
+{block #header}
+	<div class="header-subdomain">{$presenter->domain->name}</div>
+{/block}
+
+{block #navigation}
+{control domain}
+{element navigation profilNavigation mode => 1}
+{/block}
+
+{block #layout}
+<div class="col-md-12">
+
+	{control flashMessage TRUE}
+	{block #contentTop}{/block}
+	{block #content}{include #page-content}{/block}
+	{block #contentBottom}{/block}
+
+	<hr />
+
+	<small class="muted">
+		{cache $presenter->routeId, tags => [
+			'route-' . $presenter->routeId,
+		]}
+		{control itemInfo $presenter->route}
+		{/cache}
+	</small>
+</div>

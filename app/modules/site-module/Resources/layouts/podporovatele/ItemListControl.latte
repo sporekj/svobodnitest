@@ -1,0 +1,32 @@
+{var $thumbnail = '385x'}
+
+<div class="row">
+{foreach $routes as $key => $route}
+
+	{if $key % 3 == 0 && !$iterator->isFirst()}</div><div class="row">{/if}
+
+	{if $route instanceof CmsModule\Content\Entities\ExtendedRouteEntity}{var $route = $route->route}{/if}
+
+	{cache [$route->id, $presenter->lang], tags => [\CmsModule\Content\Entities\PageEntity::CACHE, \CmsModule\Content\Entities\RouteEntity::CACHE, \CmsModule\Pages\Tags\TagEntity::CACHE, \CmsModule\Content\Entities\LanguageEntity::CACHE]}
+
+		<div class="col-md-4">
+
+			{if $route->photo}
+				<img class="img-rounded img-responsive" n:src="$route->photo->getFileUrl(true), size=>$thumbnail"
+					 alt="{$route->name}"/>
+			{/if}
+
+			<h2>
+				{$route->name ?: $route}
+				{if isset($route->notation)}<br /><small>{$route->notation}</small>{/if}
+			</h2>
+
+			<p n:if="isset($route->text)">
+				{!$route->text|content}
+			</p>
+
+		</div>
+	{/cache}
+
+{/foreach}
+</div>

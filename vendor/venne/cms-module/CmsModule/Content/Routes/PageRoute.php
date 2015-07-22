@@ -1,0 +1,398 @@
+<?php
+
+/**
+ * This file is part of the Venne:CMS (https://github.com/Venne)
+ *
+ * Copyright (c) 2011, 2012 Josef Kříž (http://www.josef-kriz.cz)
+ *
+ * For the full copyright and license information, please view
+ * the file license.txt that was distributed with this source code.
+ */
+
+namespace CmsModule\Content\Routes;
+
+use CmsModule\Content\Entities\ExtendedRouteEntity;
+use CmsModule\Content\Entities\PageEntity;
+use CmsModule\Content\Entities\RouteEntity;
+use CmsModule\Content\Repositories\DomainRepository;
+use CmsModule\Content\Repositories\LanguageRepository;
+use CmsModule\Content\Repositories\RouteRepository;
+use Doctrine\ORM\NoResultException;
+use DoctrineModule\Repositories\BaseRepository;
+use Nette\Application\Request;
+use Nette\Application\Routers\Route;
+use Nette\Caching\Cache;
+use Nette\Callback;
+use Nette\Http\Url;
+
+/**
+ * @author Josef Kříž <pepakriz@gmail.com>
+ */
+class PageRoute extends Route
+{
+
+	const CACHE = 'Venne.routing';
+
+	const DEFAULT_MODULE = 'Cms';
+
+	const DEFAULT_PRESENTER = 'Base';
+
+	const DEFAULT_ACTION = 'default';
+
+	/** @var \Nette\DI\Container|\SystemContainer */
+	protected $container;
+
+	/** @var Callback */
+	protected $checkConnectionFactory;
+
+	/** @var bool */
+	protected $languages;
+
+	/** @var string */
+	protected $defaultLanguage;
+
+	/** @var bool */
+	protected $_defaultLang = FALSE;
+
+	/** @var Cache */
+	private $cache;
+
+
+	/**
+	 * @param Callback $checkConnectionFactory
+	 * @param BaseRepository $routeRepository
+	 * @param BaseRepository $langRepository
+	 * @param $prefix
+	 * @param $parameters
+	 * @param $languages
+	 * @param $defaultLanguage
+	 */
+	public function __construct(\Nette\DI\Container $container, \Nette\Caching\IStorage $cache, Callback $checkConnectionFactory, $prefix, $parameters, $languages, $defaultLanguage, $oneWay = FALSE)
+	{
+		$this->container = $container;
+		$this->cache = new Cache($cache, self::CACHE);
+
+		$this->checkConnectionFactory = $checkConnectionFactory;
+		$this->languages = $languages;
+		$this->defaultLanguage = $defaultLanguage;
+
+		parent::__construct($prefix . '<slug .+>[/<module qwertzuiop>/<presenter qwertzuiop>]' . (count($this->languages) > 1 && strpos($prefix, '<lang>') === FALSE ? '?lang=<lang>' : ''), $parameters + array(
+				'presenter' => self::DEFAULT_PRESENTER,
+				'module' => self::DEFAULT_MODULE,
+				'action' => self::DEFAULT_ACTION,
+				'lang' => NULL,
+				'slug' => array(
+					self::VALUE => '',
+					self::FILTER_IN => NULL,
+					self::FILTER_OUT => NULL,
+				),
+				'domain' => array(
+					self::VALUE => NULL,
+					self::FILTER_IN => NULL,
+					self::FILTER_OUT => NULL,
+				),
+			), $oneWay ? Route::ONE_WAY | Route::SECURED : Route::SECURED);
+	}
+
+
+	/**
+	 * @return LanguageRepository
+	 */
+	protected function getLangRepository()
+	{
+		return $this->container->cms->languageRepository;
+	}
+
+
+	/**
+	 * @return RouteRepository
+	 */
+	protected function getRouteRepository()
+	{
+		return $this->container->cms->routeRepository;
+	}
+
+
+	/**
+	 * @return DomainRepository
+	 */
+	protected function getDomainRepository()
+	{
+		return $this->container->cms->domainRepository;
+	}
+
+
+	/**
+	 * Maps HTTP request to a Request object.
+	 *
+	 * @param  Nette\Http\IRequest
+	 * @return \Nette\Application\Request|NULL
+	 */
+	public function match(\Nette\Http\IRequest $httpRequest)
+	{
+		if (($request = parent::match($httpRequest)) === NULL || !array_key_exists('slug', $request->parameters)) {
+			return NULL;
+		}
+
+		if (!$this->checkConnectionFactory->invoke()) {
+			return NULL;
+		}
+
+		$parameters = $request->parameters;
+
+		if (!$this->_defaultLang && count($this->languages) > 1) {
+			if (!isset($parameters['lang'])) {
+				$parameters['lang'] = $this->defaultLanguage;
+			}
+
+			if ($parameters['lang'] !== $this->defaultLanguage) {
+				$this->container->cms->pageListener->setLocale($parameters['lang']);
+			}
+
+			$this->_defaultLang = TRUE;
+		}
+
+		$key = array($httpRequest->getUrl()->getAbsoluteUrl(), $parameters['lang'], isset($parameters['domain']) ? $parameters['domain'] : NULL);
+		$data = $this->cache->load($key);
+		if ($data) {
+			return $this->modifyMatchRequest($request, $data[0], $data[1], $data[2], $data[3], $data[4], $parameters);
+		}
+
+		if (count($this->languages) > 1) {
+			try {
+				$tr = $this->container->entityManager->getRepository('CmsModule\Content\Entities\RouteTranslationEntity')->createQueryBuilder('a')
+					->leftJoin('a.language', 'l')
+					->andWhere('a.url = :url')->setParameter('url', $parameters['slug'])
+					->andWhere('l.alias = :lang')->setParameter('lang', $parameters['lang'])
+					->getQuery()->getSingleResult();
+			} catch (NoResultException $e) {
+			}
+
+			if (!isset($tr) || !$tr) {
+				$qb = $this->getRouteRepository()->createQueryBuilder('a')
+					->leftJoin('a.language', 'p')
+					->andWhere('a.language IS NULL OR p.alias = :lang')->setParameter('lang', $parameters['lang'])
+					->andWhere('a.url = :url')->setParameter('url', $parameters['slug']);
+			} else {
+				$qb = $this->getRouteRepository()->createQueryBuilder('a')
+					->leftJoin('a.translations', 't')
+					->where('t.id = :id')->setParameter('id', $tr->id);
+			}
+		} else {
+			$qb = $this->getRouteRepository()->createQueryBuilder('a')
+				->where('a.url = :url')
+				->setParameter('url', $parameters['slug']);
+		}
+
+		$domain = isset($parameters['domain']) && $parameters['domain'] ? $this->getDomainRepository()->findOneBy(array('domain' => $parameters['domain'])) : NULL;
+		if ($domain) {
+			$qb->andWhere('a.domain = :domain')->setParameter('domain', $domain->id);
+		} else {
+			$qb->andWhere('a.domain IS NULL');
+		}
+
+		try {
+			$route = $qb->getQuery()->getSingleResult();
+		} catch (NoResultException $e) {
+			$qb = $this->getRouteRepository()->createQueryBuilder('a')
+				->join('a.aliases', 's')
+				->andWhere('s.aliasUrl = :url')->setParameter('url', $parameters['slug']);
+
+			if ($domain) {
+				$qb->andWhere('s.aliasDomain = :domain OR s.aliasDomain IS NULL')->setParameter('domain', $domain->domain);
+			} else {
+				$qb->andWhere('s.aliasDomain IS NULL');
+			}
+
+			if (count($this->languages) > 1) {
+				$qb->andWhere('s.aliasLang = :lang')->setParameter('lang', $parameters['lang']);
+			} else {
+				$qb->andWhere('s.aliasLang IS NULL');
+			}
+
+			try {
+				$route = $qb->getQuery()->getSingleResult();
+			} catch (NoResultException $e) {
+				return null;
+			}
+		}
+
+		$this->cache->save($key, array($route->id, $route->page->id, $route->type, $domain ? $domain->domain : NULL, $route->params), array(
+			Cache::TAGS => array(RouteEntity::CACHE),
+		));
+		return $this->modifyMatchRequest($request, $route, $route->page, $route->type, $domain, $route->params, $parameters);
+	}
+
+
+	/**
+	 * Modify request by page
+	 *
+	 * @param \Nette\Application\Request $appRequest
+	 * @param RouteEntity $route
+	 * @param PageEntity $page
+	 * @param string $slug
+	 * @return \Nette\Application\Request
+	 */
+	protected function modifyMatchRequest(\Nette\Application\Request $appRequest, $route, $page, $routeType, $domain, $routeParameters, $parameters)
+	{
+		if (is_object($route)) {
+			$parameters['routeId'] = $route->id;
+			$parameters['_route'] = $route;
+		} else {
+			$parameters['routeId'] = $route;
+		}
+
+		if (is_object($page)) {
+			$parameters['pageId'] = $page->id;
+			$parameters['_page'] = $page;
+		} else {
+			$parameters['pageId'] = $page;
+		}
+
+		$parameters['_domain'] = is_object($domain) ? $domain->domain : $domain;
+
+		$parameters = $routeParameters + $parameters;
+		$type = explode(':', $routeType);
+		$parameters['action'] = $type[count($type) - 1];
+		$parameters['lang'] = $appRequest->parameters['lang'] ? : $this->defaultLanguage;
+		unset($type[count($type) - 1]);
+		$presenter = join(':', $type);
+		$appRequest->setParameters($parameters);
+		$appRequest->setPresenterName($presenter);
+		return $appRequest;
+	}
+
+
+	/**
+	 * Constructs absolute URL from Request object.
+	 *
+	 * @param  Nette\Application\Request
+	 * @param  Nette\Http\Url
+	 * @return string|NULL
+	 */
+	public function constructUrl(Request $appRequest, Url $refUrl)
+	{
+		if (!$this->checkConnectionFactory->invoke()) {
+			return NULL;
+		}
+
+		$parameters = $appRequest->getParameters();
+		$key = (array)$parameters;
+		unset($key['_route']);
+		unset($key['_page']);
+		if (isset($key['route']) && is_object($key['route'])) {
+			$key['route'] = $key['route'] instanceof RouteEntity ? $key['route']->id : $key['route']->route->id;
+		}
+		unset($key['page']);
+
+		$data = $this->cache->load($key);
+		if ($data) {
+			return $data;
+		}
+
+		if (isset($parameters['special'])) {
+			$special = $parameters['special'];
+			unset($parameters['special']);
+			if (count($this->languages) > 1) {
+				if (!isset($parameters['lang'])) {
+					$parameters['lang'] = $this->defaultLanguage;
+				}
+
+				try {
+					if ($special === 'main') {
+						$route = $this->getRouteRepository()->createQueryBuilder('a')
+							->leftJoin('a.page', 'm')
+							->leftJoin('m.language', 'p')
+							->andWhere('p.alias = :lang OR a.language IS NULL')
+							->andWhere('m.mainRoute = a.id AND a.url = :url')
+							->setParameter('lang', $parameters['lang'])
+							->setParameter('url', '')
+							->getQuery()->getSingleResult();
+					} else {
+						$route = $this->getRouteRepository()->createQueryBuilder('a')
+							->leftJoin('a.page', 'm')
+							->leftJoin('m.language', 'p')
+							->where('m.special = :special')
+							->andWhere('p.alias = :lang OR a.language IS NULL')
+							->andWhere('m.mainRoute = a.id')
+							->setParameter('special', $special)
+							->setParameter('lang', $parameters['lang'])
+							->getQuery()->getSingleResult();
+					}
+				} catch (NoResultException $e) {
+					return NULL;
+				}
+			} else {
+				try {
+					if ($special === 'main') {
+						$route = $this->getRouteRepository()->createQueryBuilder('a')
+							->andWhere('a.url = :url')
+							->setParameter('url', '')
+							->getQuery()->getSingleResult();
+					} else {
+						$route = $this->getRouteRepository()->createQueryBuilder('a')
+							->leftJoin('a.page', 'm')
+							->andWhere('m.special = :special')
+							->andWhere('m.mainRoute = a.id')
+							->setParameter('special', $special)
+							->getQuery()->getSingleResult();
+					}
+				} catch (NoResultException $e) {
+					return NULL;
+				}
+			}
+			$route = $route->id;
+		} elseif (isset($parameters['route'])) {
+			$route = is_object($parameters['route'])
+				? ($parameters['route'] instanceof ExtendedRouteEntity ? $parameters['route']->route->id : $parameters['route']->id)
+				: $parameters['route'];
+			unset($parameters['route']);
+		} elseif (isset($parameters['_route'])) {
+			$route = $parameters['_route']->id;
+		} elseif (isset($parameters['routeId'])) {
+			$route = $parameters['routeId'];
+		} else {
+			return NULL;
+		}
+
+		$domain = $parameters['_domain'];
+
+		unset($parameters['_route']);
+		unset($parameters['_page']);
+		unset($parameters['_domain']);
+		unset($parameters['routeId']);
+		unset($parameters['pageId']);
+
+		$this->modifyConstructRequest($appRequest, $this->getRouteRepository()->find($route), $parameters, $domain);
+		$data = parent::constructUrl($appRequest, $refUrl);
+
+		$this->cache->save($key, $data, array(
+			Cache::TAGS => array(RouteEntity::CACHE),
+		));
+		return $data;
+	}
+
+
+	/**
+	 * Modify request by page
+	 *
+	 * @param \Nette\Application\Request $request
+	 * @param RouteEntity $route
+	 * @param $parameters
+	 * @param string $domain
+	 * @return \Nette\Application\Request
+	 */
+	protected function modifyConstructRequest(Request $request, RouteEntity $route, $parameters, $domain)
+	{
+		$request->setPresenterName(self::DEFAULT_MODULE . ':' . self::DEFAULT_PRESENTER);
+		$request->setParameters(array(
+				'module' => self::DEFAULT_MODULE,
+				'presenter' => self::DEFAULT_PRESENTER,
+				'action' => self::DEFAULT_ACTION,
+				'lang' => count($this->languages) > 1 ? (isset($parameters['lang']) ? $parameters['lang'] : ($route->page->language ? $route->page->language->alias : $this->defaultLanguage)) : NULL,
+				'slug' => $route->getUrl(),
+				'domain' => $route->domain ? $route->domain->domain : '',
+			) + $parameters);
+		return $request;
+	}
+}
